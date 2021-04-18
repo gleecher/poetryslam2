@@ -1,6 +1,8 @@
 """
 Gannon Leech
 CSCI 3725: Computational Creativity
+Mission 6: Poetry Slam
+Title: To bot or not to bot
 Last Modified: 4/17/21
 Description: This is the main class for my poetry slam project.
 This class contains most ofthe methods needed to run the program, including
@@ -15,7 +17,9 @@ from WordDictionary import wordDictionary
 from poem import Poem
 import random as rand
 import datetime
-from os import system
+import os
+import re
+from gtts import gTTS
 
 
 def main():
@@ -30,6 +34,7 @@ def main():
     full_file = get_file_info(filename).strip('/n')
     words = full_file.split()
 
+    # Parse the input into the ngrams model
     for i in range(len(words) - n_value):
         sequence = ""
         if first_line_checker == 0:
@@ -47,21 +52,27 @@ def main():
         my_dict.update_dict(words[next_word].lower())
         my_word.add_dict(my_dict, words[next_word].lower())
 
+    # run the genetic algorithm methods
     population = seed_population(my_word, first_words)
-    for generation in range(20):
+    counter = 0
+    max_generations = 20
+
+    while counter < max_generations:
         for poem in population:
             calc_fitness(poem, my_word)
 
         breeding_pool = select_breeding_pool(population)
         population = crossover(breeding_pool)
 
-        # new_population = []
-        # for poem in population:
-        #    new_poem = mutate(poem, my_word, n_value)
-        #    new_population.append(new_poem)
+        new_population = []
+        for poem in population:
+            new_poem = mutate(poem, my_word, n_value)
+            new_population.append(new_poem)
 
-        # population = new_population
+        population = new_population
+        counter += 1
 
+    # read out the best poem and save as a txt file
     best_poem = find_max(population)
     speak_poem(best_poem)
     write_out_poem(best_poem)
@@ -115,14 +126,15 @@ def select_breeding_pool(population):
         generation
     """
     breeding_pool = []
-    for i in range(len(population)):
+    counter = 0
+    while counter < len(population):
         vals = rand.sample(range(len(population)), 2)
 
         if population[vals[0]].fitness > population[vals[1]].fitness:
             breeding_pool.append(population[vals[0]])
         else:
             breeding_pool.append(population[vals[1]])
-
+        counter += 1
     return breeding_pool
 
 
@@ -164,7 +176,10 @@ def seed_population(my_word, first_words):
     population = []
 
     # generates 20 poems for a generation
-    for j in range(20):
+    counter = 0
+    max_poems = 20
+
+    while counter < max_poems:
         poem = Poem()
 
         # each poem is 50 words
@@ -180,11 +195,14 @@ def seed_population(my_word, first_words):
             if line_val == 0:
                 poem_string += '\n'
 
-            if i == 25:
-                poem.first_half = poem_string
-                poem_string = ""
-            if i == 49:
-                poem.second_half = poem_string
+            # for the purposes of crossbreeding, splits the poem in half
+            if len(poem_string.split()) == 25:
+                if i > 25:
+                    poem.second_half = poem_string
+                    poem_string = ""
+                else:
+                    poem.first_half = poem_string
+                    poem_string = ""
 
             old_word_list = old_sequence.split()
             old_sequence = ""
@@ -193,7 +211,7 @@ def seed_population(my_word, first_words):
             old_sequence = old_sequence + new_word
 
         population.append(poem)
-
+        counter += 1
     return population
 
 
@@ -209,7 +227,7 @@ def calc_fitness(poem, word_dictionary):
     overall_poem = poem.first_half + poem.second_half
     variability_score = calc_variability(overall_poem)
     likelihood_score = calc_likelihood(overall_poem, word_dictionary)
-    poem.fitness = variability_score + likelihood_score
+    poem.fitness = likelihood_score - variability_score
 
 
 def calc_likelihood(poem, word_dictionary):
@@ -238,7 +256,12 @@ def calc_variability(poem):
         poem (Poem): the poem to measure
     """
     words = poem.split()
-    return len(set(words))
+    counter = 0
+    for i in range(len(words) - 1):
+        if words[i] == words[i + 1]:
+            counter += 1
+
+    return counter * 500
 
 
 def mutate(poem, word_dictionary, n_value, mutation_prob=0.05):
@@ -247,10 +270,10 @@ def mutate(poem, word_dictionary, n_value, mutation_prob=0.05):
 
         poem(Poem): the given poem to mutate
         word_dictionary (word_dictionary): the dictionary containing the
-         n-grams information
+        n-grams information
         n_value (int): the user inputted n value
         mutation_prob (float): the probability that an indivudal word would be
-         mutated
+        mutated
     """
     new_poem = Poem()
     new_poem.first_half = get_words(poem.first_half, word_dictionary,
@@ -278,7 +301,7 @@ def get_words(poem_half, word_dictionary, n_value, mutation_prob):
     for j in range(n_value):
         new_half += half_words[j] + " "
 
-    for k in range(n_value - 1, len(half_words) - n_value):
+    for k in range(n_value, len(half_words) - n_value):
         chance = rand.uniform(0, 1)
         if chance < mutation_prob:
             random_word = rand.choice(poem_half.split())
@@ -293,12 +316,15 @@ def get_words(poem_half, word_dictionary, n_value, mutation_prob):
         if mod_val == 0:
             new_half += '\n'
 
+    for i in range(n_value):
+        new_half += half_words[len(half_words) - n_value + i] + " "
+
     return new_half
 
 
 def write_out_poem(poem):
     """Given a poem, writes it as a file in a designated results folder.
-        poem(Recipe): Recipe being written to a .txt file
+        poem(poem): Recipe being written to a .txt file
     """
     filename = ("outputs/Poem_" + str(datetime.datetime.now()))
     with open(filename, 'w+') as file:
@@ -306,9 +332,23 @@ def write_out_poem(poem):
 
 
 def speak_poem(poem):
+    """
+        Given a poem, saves it as an mp3 and reads it out load, for help, i
+        used:
+        https://towardsdatascience.com/easy-text-to-speech-with-python-bfb34250036e
+        for help with gTTS and this link:
+        https://stackoverflow.com/questions/34214139/python-keep-only-letters-in-string/34214187
+        for help cleaning up the string to make it readable
+
+        poem (poem): the poem to be read out loud
+    """
     poem_lines = poem.first_half + poem.second_half
-    command = "say " + str(poem_lines.strip())
-    system(command)
+    poem_lines = poem_lines.rstrip()
+    full_poem = re.sub('[^a-zA-z ]+', '', poem_lines)
+    gts_obj = gTTS(text=poem_lines, lang="en", slow=False)
+    name = "output_audio/Poem" + str(datetime.datetime.now()) + "mp3"
+    gts_obj.save(name)
+    os.system("say " + full_poem)
 
 
 if __name__ == "__main__":

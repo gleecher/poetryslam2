@@ -9,7 +9,8 @@ file. You will be asked to input a file of your choosing as an inspiring set. I
 have the sonnets.txt file in, which contains Shakespeare's 154 sonnets, so if you enter
 sonnets.txt it will use that, or you may include one of your own. Then it will ask for
 an n value which you can enter. The output will be played over your system, and the final
-poem will be saved to the outputs folder
+poem will be saved to the outputs folder. The poem will also read out the poem, and save the audio 
+to the output_audio folder as an mp3 file.
 
 Description: This program uses n-grams and a genetic algorithm to generate
 poetry inspired by the sonnets of shakespeare. The inspirational set is all 
@@ -21,19 +22,15 @@ an initial population. After the generation is complete, the steps of a genetic 
 are followed in order to evolve the original poems that were generated. This was done in order
 to make the poems more unique. The crossover process is fairly simple, each poem is represented
 as two havles, so crossover just switches the halves between two poems to create two different
-offspring. 
-
-For mutation I gave a small probability to swap at each word in the poem with a different word  
+offspring. For mutation I gave a small probability to swap at each word in the poem with a different word  
 using the ngram model. 
 
 The biggest challenge for me was how to measure the fitness of a given poem. To think about this,
 I read different scientific papers, and tried to understand what those authors did and how I could
 utilize that. This led me to decide that two metrics I would look at for fitness would be the variability/uniqueness
-of the poems as well as the realisticness of the poem. To measure variability, I simply looked at the 
-number of unique words in a poem, in order to avoid ngram poems that just repeated the same phrase over
-and over again. To look at realisticness, I added a fitness measure to reward a poem if the word sequence 
-is a high probability sequence, as stored in the n-gram dictionary. This way, it rewards more common sequences over
-less common sequences, which would hopefully add make the overall poem more thematically connected throughout.
+of the poems as well as the realisticness of the poem. To measure variability, I looked if words were repeated back to
+back and reduced the fitness of a poem each time that occured. This hopefully would reduce the number of times
+a poem has a word repeated back to back To look at realisticness, I added a fitness measure to reward a poem if the word sequence is a high probability sequence, as stored in the n-gram dictionary. This way, it rewards more common sequences over less common sequences, which would hopefully add make the overall poem more thematically connected throughout.
 
 This project challenged me a lot as a computer scientist. Originallay, I did not intend to use n-grams
 to generate my poem, and was going to try to utilize tweepy and the twitter api to make it work. However,

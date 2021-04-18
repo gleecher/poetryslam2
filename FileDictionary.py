@@ -1,6 +1,8 @@
 """
 Gannon Leech
 CSCI 3725: Computational Creativity
+Mission 6: Poetry Slam
+Title: To bot or not to bot
 Last Modified: 4/17/21
 Description: This class sets up the FileDictionary, which is a dictionary
 that stores the word that follows the corresponding sequence for the

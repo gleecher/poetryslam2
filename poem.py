@@ -1,6 +1,8 @@
 """
 Gannon Leech
 CSCI 3725: Computational Creativity
+Mission 6: Poetry Slam
+Title: To bot or not to bot
 Last Modified: 4/17/21
 Description: This class creates the Poem object. It is a very simple class
 that only has attributes for its own fitness, and for the first and second
